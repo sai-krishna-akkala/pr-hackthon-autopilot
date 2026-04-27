@@ -14,16 +14,24 @@ import {
   getOverallAssessment,
 } from "../utils/riskEngine.js";
 
+// ~4 chars per token; keep total well under Groq's 12 K TPM limit
+const MAX_DIFF_CHARS = Number(process.env.MAX_DIFF_CHARS || 18000);
+
 function buildFilesText(files) {
-  return files
-    .map(
-      (f) =>
-        `### ${f.filename}  (status: ${f.status}, +${f.additions}/-${f.deletions})\n` +
-        "```diff\n" +
-        (f.patch || "(binary or no patch)") +
-        "\n```"
-    )
-    .join("\n\n");
+  let text = "";
+  for (const f of files) {
+    const block =
+      `### ${f.filename}  (status: ${f.status}, +${f.additions}/-${f.deletions})\n` +
+      "```diff\n" +
+      (f.patch || "(binary or no patch)") +
+      "\n```\n\n";
+    if (text.length + block.length > MAX_DIFF_CHARS) {
+      text += `\n... (${files.length - text.split("### ").length + 1} more files truncated to fit token limit)\n`;
+      break;
+    }
+    text += block;
+  }
+  return text;
 }
 
 export async function orchestrate(prMeta, files, gh) {

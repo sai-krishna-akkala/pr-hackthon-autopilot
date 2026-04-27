@@ -97,8 +97,16 @@ export async function callLLM(systemPrompt, userMessage) {
       const errorText = await res.text();
       const isRateLimit = res.status === 429;
 
-      if (!isRateLimit) {
+      const isPayloadTooLarge = res.status === 413;
+      if (!isRateLimit && !isPayloadTooLarge) {
         throw new Error(`Groq error ${res.status}: ${errorText}`);
+      }
+
+      // For 413 (too large), skip retries and try fallback model immediately
+      if (isPayloadTooLarge) {
+        console.warn(`[Groq] Request too large for model=${model}. Trying next model…`);
+        lastError = new Error(`Groq error ${res.status}: ${errorText}`);
+        break;
       }
 
       lastError = new Error(`Groq error ${res.status}: ${errorText}`);
