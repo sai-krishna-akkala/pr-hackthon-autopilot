@@ -18,7 +18,7 @@ def calculate_order_total(subtotal: float, loyalty_tier: str, include_shipping: 
         "discount": discount,
         "amount_after_discount": amount_after_discount,
         "tax": tax,
-        "shipping_fee": shipping_fee,
-        "handling_fee": handling_fee,
+        "shipping_fee": shipping_fee2,
+        "handling_fee": handling_fee2,
         "total": total,
     }
