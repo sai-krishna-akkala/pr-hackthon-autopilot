@@ -15,3 +15,9 @@ def calculate_discount(subtotal: float, loyalty_tier: str) -> float:
 
 def calculate_tax(amount_after_discount: float) -> float:
     return round(amount_after_discount * DEFAULT_CONFIG.tax_rate, 2)
+
+
+def calculate_handling_fee(subtotal: float) -> float:
+    """Calculate handling fee: 2% of subtotal, minimum $5."""
+    fee = subtotal * DEFAULT_CONFIG.handling_fee_rate
+    return round(max(fee, 5.0), 2)
