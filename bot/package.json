@@ -1,0 +1,14 @@
+{
+  "name": "ai-pr-review-bot",
+  "version": "2.0.0",
+  "description": "Multi-agent AI-powered PR Review Bot (JavaScript)",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "review": "node index.js"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.2"
+  }
+}

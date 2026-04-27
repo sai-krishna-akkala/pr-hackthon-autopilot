@@ -1,0 +1,50 @@
+name: AI Multi-Agent Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  review:
+    name: AI Multi-Agent Review (Security · Performance · Code Quality)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        working-directory: bot
+        run: npm install
+
+      - name: Run Multi-Agent AI Review Bot
+        working-directory: bot
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          LLM_PROVIDER: ${{ vars.LLM_PROVIDER || 'groq' }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_MODEL: ${{ vars.GROQ_MODEL || 'llama-3.3-70b-versatile' }}
+          GROQ_FALLBACK_MODEL: ${{ vars.GROQ_FALLBACK_MODEL || 'llama-3.1-8b-instant' }}
+          GROQ_MAX_RETRIES: ${{ vars.GROQ_MAX_RETRIES || '4' }}
+          GROQ_MAX_TOKENS: ${{ vars.GROQ_MAX_TOKENS || '1400' }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_MODEL: ${{ vars.CLAUDE_MODEL || 'claude-3-5-haiku-20241022' }}
+          MAX_CONTEXT_FILES: ${{ vars.MAX_CONTEXT_FILES || '5' }}
+          MAX_CONTEXT_CHARS: ${{ vars.MAX_CONTEXT_CHARS || '2000' }}
+          MAX_DIFF_CHARS: ${{ vars.MAX_DIFF_CHARS || '18000' }}
+        run: node index.js
