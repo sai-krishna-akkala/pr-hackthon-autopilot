@@ -2,115 +2,86 @@
  * formatter.js – Build the GitHub PR comment markdown from merged agent results.
  */
 
-import { riskEmoji, decisionBadge } from "../utils/riskEngine.js";
+import { decisionBadge } from "../utils/riskEngine.js";
 
 export function formatSummaryComment(review, repo) {
-  const { risk_score, risk_level, decision, agent_scores, agent_summaries } = review;
+  const { decision, agent_summaries } = review;
   const lines = [];
+  const dedupedIssues = dedupeIssues(review.issues || []);
+  const fileImpact = buildFileImpactRows(dedupedIssues);
+  const keyFindings = dedupedIssues.slice(0, 5);
 
   // ── Header ──────────────────────────────────────────────────────────────
-  lines.push("# 🤖 AI Code Review — Multi-Agent Analysis");
+  lines.push("# 🤖 AI Code Review — Summary");
   lines.push("");
   lines.push(
-    "> Powered by **3 specialized AI agents** running in parallel: Security · Performance · Code Quality"
+    "> 3 specialized AI agents: Security · Performance · Code Quality"
   );
   lines.push("");
 
-  // ── Risk Dashboard ───────────────────────────────────────────────────────
-  lines.push("## 🎯 Risk Dashboard");
+  // ── Assessment ─────────────────────────────────────────────────────────
+  lines.push("## ✅ Assessment");
   lines.push("");
-  lines.push("| Metric | Value |");
-  lines.push("|--------|-------|");
-  lines.push(
-    `| **Overall Risk Score** | ${riskEmoji(risk_level)} **${risk_score} / 100** *(higher = riskier)* |`
-  );
-  lines.push(`| **Risk Level** | ${riskEmoji(risk_level)} **${risk_level}** |`);
-  lines.push(`| **Decision** | ${decisionBadge(decision)} |`);
-  lines.push(`| **Assessment** | ${review.overall_assessment} |`);
+  lines.push(`- **Decision (Approve / Needs Changes / Reject):** ${decisionBadge(decision)}`);
+  lines.push(`- **Summary:** ${review.overall_assessment}`);
+  lines.push(`- **Total Findings:** ${dedupedIssues.length}`);
   lines.push("");
 
-  // ── Agent Scores ─────────────────────────────────────────────────────────
-  lines.push("## 🧠 Agent Scores *(0 = safe, 100 = critical risk)*");
+  // ── Agent Summaries ─────────────────────────────────────────────────────
+  lines.push("## 🧠 Agent Highlights");
   lines.push("");
-  lines.push("| Agent | Score | Level |");
-  lines.push("|-------|-------|-------|");
-
-  const agentLevels = {
-    security: scoreToLevel(agent_scores.security),
-    performance: scoreToLevel(agent_scores.performance),
-    code_quality: scoreToLevel(agent_scores.code_quality),
-  };
-
-  lines.push(
-    `| 🔒 Security Agent | **${agent_scores.security}** | ${riskEmoji(agentLevels.security)} ${agentLevels.security} |`
-  );
-  lines.push(
-    `| ⚡ Performance Agent | **${agent_scores.performance}** | ${riskEmoji(agentLevels.performance)} ${agentLevels.performance} |`
-  );
-  lines.push(
-    `| 🧹 Code Quality Agent | **${agent_scores.code_quality}** | ${riskEmoji(agentLevels.code_quality)} ${agentLevels.code_quality} |`
-  );
+  lines.push(`- **🔒 Security:** ${agent_summaries.security || "No security issues found."}`);
+  lines.push(`- **⚡ Performance:** ${agent_summaries.performance || "No performance issues found."}`);
+  lines.push(`- **🧹 Code Quality:** ${agent_summaries.code_quality || "No code quality issues found."}`);
   lines.push("");
 
-  // ── Agent Summaries ───────────────────────────────────────────────────────
-  lines.push("## 📋 Agent Summaries");
-  lines.push("");
-  lines.push(`**🔒 Security:** ${agent_summaries.security || "No security issues found."}`);
-  lines.push("");
-  lines.push(
-    `**⚡ Performance:** ${agent_summaries.performance || "No performance issues found."}`
-  );
-  lines.push("");
-  lines.push(
-    `**🧹 Code Quality:** ${agent_summaries.code_quality || "No code quality issues found."}`
-  );
-  lines.push("");
+  // ── Changed File Impact ────────────────────────────────────────────────
+  if (fileImpact.length > 0) {
+    lines.push("## 📁 Changed File Impact");
+    lines.push("");
+    lines.push("| File | Findings | Highest Severity | Effect |");
+    lines.push("|------|----------|------------------|--------|");
+    for (const row of fileImpact) {
+      lines.push(`| \`${row.file}\` | ${row.count} | ${severityBadge(row.highestSeverity)} | ${row.effect} |`);
+    }
+    lines.push("");
+  }
 
-  // ── Issues ─────────────────────────────────────────────────────────────
-  const issues = review.issues || [];
-  if (issues.length > 0) {
-    lines.push(`## 🚨 Issues Found (${issues.length} total)`);
+  // ── Key Findings ───────────────────────────────────────────────────────
+  if (keyFindings.length > 0) {
+    lines.push(`## 🚨 Key Findings (${keyFindings.length})`);
+    lines.push("");
+    lines.push("| Severity | Location | Issue | Suggested Fix |");
+    lines.push("|----------|----------|-------|---------------|");
+    for (const finding of keyFindings) {
+      const location = finding.line ? `\`${finding.file}\`:${finding.line}` : `\`${finding.file}\``;
+      lines.push(
+        `| ${severityBadge(finding.severity)} | ${location} | ${escapePipes(finding.issue)} | ${escapePipes(finding.suggestion || "Apply validation/config-based fix") } |`
+      );
+    }
     lines.push("");
 
-    // Sort by severity: High → Medium → Low
-    const order = { High: 0, Medium: 1, Low: 2 };
-    const sorted = [...issues].sort(
-      (a, b) => (order[a.severity] ?? 3) - (order[b.severity] ?? 3)
-    );
-
-    for (let i = 0; i < sorted.length; i++) {
-      const iss = sorted[i];
-      const sevEmoji = { High: "🔴", Medium: "🟡", Low: "🟢" }[iss.severity] ?? "⚪";
-      lines.push(
-        `### ${i + 1}. ${sevEmoji} [${iss.severity}] \`${iss.file || "unknown"}\` — *${iss.agent} Agent*`
-      );
-      if (iss.line) lines.push(`> Line ${iss.line}`);
+    const suggestions = keyFindings.filter((f) => f.suggested_code);
+    if (suggestions.length > 0) {
+      lines.push("## 💡 Suggested Code");
       lines.push("");
-      lines.push(`**Issue:** ${iss.issue}`);
-      lines.push(`**Risk:** ${iss.risk}`);
-      lines.push(`**Fix:** ${iss.suggestion}`);
-      if (iss.suggested_code) {
+      for (let i = 0; i < suggestions.length; i++) {
+        const s = suggestions[i];
+        const location = s.line ? `\`${s.file}\`:${s.line}` : `\`${s.file}\``;
+        lines.push(`### ${i + 1}. ${location}`);
         lines.push("```suggestion");
-        lines.push(iss.suggested_code);
+        lines.push(s.suggested_code);
         lines.push("```");
+        lines.push("");
       }
-      lines.push("");
     }
   }
 
-  // ── Good Improvements ────────────────────────────────────────────────────
-  if (review.good_improvements?.length) {
-    lines.push("## ✅ Good Improvements");
-    lines.push("");
-    for (const g of review.good_improvements) lines.push(`- ${g}`);
-    lines.push("");
-  }
-
-  // ── Bad Regressions ──────────────────────────────────────────────────────
+  // ── Regressions ─────────────────────────────────────────────────────────
   if (review.bad_regressions?.length) {
-    lines.push("## ❌ Bad Regressions");
+    lines.push("## ❌ Regressions");
     lines.push("");
-    for (const b of review.bad_regressions) lines.push(`- ${b}`);
+    for (const b of review.bad_regressions.slice(0, 5)) lines.push(`- ${b}`);
     lines.push("");
   }
 
@@ -123,9 +94,98 @@ export function formatSummaryComment(review, repo) {
   return lines.join("\n");
 }
 
-function scoreToLevel(score) {
-  if (score <= 20) return "Low";
-  if (score <= 50) return "Medium";
-  if (score <= 75) return "High";
-  return "Critical";
+function dedupeIssues(issues) {
+  const severityOrder = { High: 0, Medium: 1, Low: 2 };
+  const map = new Map();
+
+  for (const issue of issues) {
+    const file = issue.file || "unknown";
+    const line = issue.line || "";
+    const key = `${file}|${line}|${(issue.issue || "").toLowerCase().trim()}`;
+
+    if (!map.has(key)) {
+      map.set(key, {
+        ...issue,
+        file,
+        agents: [issue.agent].filter(Boolean),
+      });
+      continue;
+    }
+
+    const existing = map.get(key);
+    const existingRank = severityOrder[existing.severity] ?? 3;
+    const incomingRank = severityOrder[issue.severity] ?? 3;
+
+    if (incomingRank < existingRank) {
+      existing.severity = issue.severity;
+    }
+    if (!existing.suggestion && issue.suggestion) {
+      existing.suggestion = issue.suggestion;
+    }
+    if (!existing.suggested_code && issue.suggested_code) {
+      existing.suggested_code = issue.suggested_code;
+    }
+    if (issue.agent && !existing.agents.includes(issue.agent)) {
+      existing.agents.push(issue.agent);
+    }
+  }
+
+  return [...map.values()].sort((a, b) => {
+    const rankA = severityOrder[a.severity] ?? 3;
+    const rankB = severityOrder[b.severity] ?? 3;
+    if (rankA !== rankB) return rankA - rankB;
+    return (a.file || "").localeCompare(b.file || "");
+  });
+}
+
+function buildFileImpactRows(issues) {
+  const severityOrder = { High: 0, Medium: 1, Low: 2 };
+  const fileMap = new Map();
+
+  for (const issue of issues) {
+    const file = issue.file || "unknown";
+    if (!fileMap.has(file)) {
+      fileMap.set(file, { file, count: 0, highestSeverity: "Low" });
+    }
+
+    const row = fileMap.get(file);
+    row.count += 1;
+
+    const currentRank = severityOrder[row.highestSeverity] ?? 3;
+    const incomingRank = severityOrder[issue.severity] ?? 3;
+    if (incomingRank < currentRank) {
+      row.highestSeverity = issue.severity;
+    }
+  }
+
+  return [...fileMap.values()]
+    .map((row) => ({
+      ...row,
+      effect: summarizeEffect(row.highestSeverity, row.count),
+    }))
+    .sort((a, b) => {
+      const rankA = severityOrder[a.highestSeverity] ?? 3;
+      const rankB = severityOrder[b.highestSeverity] ?? 3;
+      if (rankA !== rankB) return rankA - rankB;
+      return b.count - a.count;
+    });
+}
+
+function summarizeEffect(severity, count) {
+  if (severity === "High") return count > 1 ? "High impact on correctness" : "Potential correctness break";
+  if (severity === "Medium") return count > 1 ? "Moderate behavior risk" : "Minor behavior risk";
+  return count > 1 ? "Low impact cleanup needed" : "Low impact";
+}
+
+function severityBadge(severity) {
+  const map = {
+    High: "🔴 High",
+    Medium: "🟡 Medium",
+    Low: "🟢 Low",
+  };
+  return map[severity] || "⚪ Unknown";
+}
+
+function escapePipes(text = "") {
+  return String(text).replace(/\|/g, "\\|");
 }

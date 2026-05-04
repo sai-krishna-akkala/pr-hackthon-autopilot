@@ -1,19 +1,26 @@
-# PR Review Repo (Standalone)
+# PR Review Repo (Multi-User App)
 
-This repository is now self-contained for:
+This repository now includes a reusable PR review application with:
 
-- code changes + tests
-- multi-agent AI PR review bot (`bot/`)
-- local Streamlit runner UI (`app.py`)
+- email/password account creation and login
+- a Streamlit UI for any user on your deployment
+- backend-managed Groq configuration
+- GitHub PR review execution through the existing JavaScript bot
 
-No `AI-Alert-System` folder is required for this flow.
+Users only provide the GitHub information needed to run a review:
+
+- GitHub token
+- PR URL, or repository + PR number
+
+The Groq API key stays on the server and is never shown in the UI.
 
 ## Repo Structure
 
+- `app.py` – Streamlit application with authentication and PR review flow
+- `auth_store.py` – SQLite-backed user account storage with hashed passwords
+- `bot/` – JavaScript multi-agent PR review bot
 - `src/` – sample Python code under review
 - `tests/` – sample tests
-- `bot/` – JavaScript multi-agent PR review bot
-- `app.py` – local Streamlit UI to run the bot and see output
 
 ## 1) Python setup
 
@@ -25,30 +32,44 @@ pip install -r requirements.txt
 pytest -q
 ```
 
-## 2) Bot setup
+## 2) Backend environment setup
 
-```bash
-cd bot
-npm install
-cd ..
-```
+Copy `.env.example` to `.env` and set your backend secrets.
 
-## 3) Run Streamlit app (recommended)
+Required:
+
+- `GROQ_API_KEY`
+
+Optional tuning:
+
+- `GROQ_MODEL`
+- `GROQ_FALLBACK_MODEL`
+- `GROQ_MAX_RETRIES`
+- `GROQ_MAX_TOKENS`
+
+## 3) Run the app
 
 ```bash
 streamlit run app.py
 ```
 
-In the UI, fill:
+## 4) User flow
 
-- `GITHUB_REPOSITORY` (example: `owner/repo`)
-- `PR_NUMBER`
-- `GITHUB_TOKEN`
-- `GROQ_API_KEY` (or choose `claude` + `ANTHROPIC_API_KEY`)
+1. Create an account with an email address and password.
+2. Log in.
+3. Enter either:
+	- a GitHub PR URL, or
+	- a repository in `owner/repo` format plus a PR number
+4. Enter a GitHub token with repository read access and PR comment write access.
+5. Run the review and inspect the result in the UI and on GitHub.
 
-Then click **Run Bot** to see stdout/stderr/combined logs and post results to your PR.
+## 5) Bot runtime notes
 
-## 4) Run bot directly from terminal (optional)
+- Node.js 18+ is required.
+- The app auto-installs `bot/` dependencies the first time they are missing.
+- The review bot still posts the final comment directly to GitHub.
+
+## 6) Run the bot directly from terminal (optional)
 
 ```bash
 cd bot
@@ -56,17 +77,6 @@ set GITHUB_REPOSITORY=owner/repo
 set PR_NUMBER=123
 set GITHUB_TOKEN=your_token
 set LLM_PROVIDER=groq
-set GROQ_API_KEY=your_key
+set GROQ_API_KEY=your_backend_key
 node index.js
 ```
-
-## 5) Git workflow
-
-```bash
-git checkout -b feature/ai-review-improvements
-git add -A
-git commit -m "add standalone PR review bot workflow"
-git push -u origin feature/ai-review-improvements
-```
-
-Create PR on GitHub and check PR comments + Actions logs.
