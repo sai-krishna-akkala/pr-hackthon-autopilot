@@ -9,7 +9,7 @@ export function formatSummaryComment(review, repo) {
   const lines = [];
 
   // ── Header ──────────────────────────────────────────────────────────────
-  lines.push("# 🤖 AI Code Review — Multi-Agent Analysis");
+  lines.push("# 🤖 PR Review Autopilot — Multi-Agent Analysis");
   lines.push("");
   lines.push(
     "> Powered by **3 specialized AI agents** running in parallel: Security · Performance · Code Quality"
