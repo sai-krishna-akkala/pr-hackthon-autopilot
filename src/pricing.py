@@ -20,5 +20,5 @@ def calculate_tax(amount_after_discount: float) -> float:
 
 def calculate_handling_fee(subtotal: float) -> float:
     """New handling fee: 2% of subtotal, minimum $5."""
-    fee = subtotal * 0.06 #logical bug 
+    fee = subtotal * 0.07#logical bug 
     return round(max(fee, 5.0), 2)
