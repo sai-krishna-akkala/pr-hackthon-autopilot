@@ -1,0 +1,110 @@
+prompts :
+ 
+
+User : 
+Persona to assume: You are a Senior AI Systems Engineer with a specialization in multi-agent code-review pipelines, prompt engineering, and GitHub Actions hardening. Operate as if pair-programming with another senior engineer.
+
+Mission: Design, plan, and ship a production-grade, multi-agent AI Pull-Request reviewer for a GitHub repository, plus a small sample application against which the bot can be demonstrated end-to-end.
+
+Functional Requirements
+
+FR-1 Triggers. Run automatically on pull_request events: opened, reopened, synchronize, ready_for_review. Skip drafts.
+FR-2 Agents. Three independent specialist agents — Security, Performance, Code Quality — fanned out in parallel.
+FR-3 Verdict. Aggregate per-agent findings into a single decision: Approve / Needs Changes / Reject.
+FR-4 Report. Single sticky PR comment, upserted on each push, formatted as Markdown matching the attached reference screenshots: assessment, agent highlights, file-impact table, key-findings table, suggested code blocks, regressions list.
+FR-5 Sample App. A Python cart/pricing module with three defendable invariants (cap on discount, non-negative tax input, config-driven handling fee).
+Non-Functional Requirements
+
+NFR-1 Latency. End-to-end review ≤ 90 seconds for a 200-line diff.
+NFR-2 Cost. Use a free-tier-friendly LLM provider; ≤ 3 LLM calls per review (one per agent).
+NFR-3 Reliability. Single-agent failure must NOT crash the workflow; partial report must still post.
+NFR-4 Determinism. temperature ≤ 0.3; outputs validated against a JSON schema.
+NFR-5 Idempotency. Comments are upserted via marker; no comment spam on rapid pushes.
+NFR-6 Security. No secret exposure to fork PRs; least-privilege workflow permissions.
+Process Constraints
+
+Ask clarifying questions in batches before drafting anything.
+After we converge, do a self-audit pass to enumerate gaps before committing the plan.
+Build only after explicit Approved.
+
+Cursor Ai:
+
+Before drafting an architecture, three foundational decisions. Each materially constrains the SDK, the secret surface, and the workflow shape.
+
+Q1. LLM Provider & Model
+
+(a) OpenAI · gpt-4o-mini — cheap, ubiquitous, weaker on long-form structured output
+(b) Anthropic · claude-haiku — strong code reasoning, good JSON-mode
+(c) Google · gemini-1.5-flash — generous free tier
+(d) Groq · llama-3.3-70b-versatile — sub-second TTFT, native JSON-mode, free tier covers heavy use; ideal for parallel agent fan-out
+(e) Local · ollama/llama3.1:8b — zero variable cost, slower
+Q2 Output channel for the review report
+
+(a) Sticky PR comment (Issues API, marker-upsert) — recommended; matches NFR-5
+(b) GitHub Check Run summary only — appears in PR Checks tab
+(c)Both — sticky comment + Check Run with overall pass/fail status (extra workflow permission, more code)
+Q3 Structured output strategy
+
+(a) JSON-mode (response_format={"type": "json_object"}) + post-hoc validation
+(b) Tool-calling / function-calling with a strict schema
+(c)Plain text with regex extraction (not recommended)
+
+user :
+
+d,a,a 
+
+Cusror Ai: 
+ Plan is ready
+
+user :
+  
+ Recheck the plan for any gaps or modifications 
+
+cursor Ai:
+
+ Modified the existing plan , can i execute the plan ?
+
+user :
+ 
+ Changed to agent mode and used auto rather than specific model 
+ 
+ Yes proceed and along with that add test cases which covers the edge cases too
+
+cursor Ai:
+
+  Asked for the permission for terminal execution 
+
+user :
+ Found bugs asked to debug them and some are manually done 
+
+Cursor Ai:
+  Debugging completed 
+  1. Need any change in execution 
+  2. No need 
+
+user :
+  Cross checked the code for vulnerabilities and changed the agent code accordingly with project 
+
+User :
+ can you go through the code and see for any security vulnerabilities and Performance issues.
+
+Cursor Ai :
+  completed all the checks
+  check PR review output by creating the PR after pushing this to your GitHub repo 
+  Need git commands to run?
+
+User :
+ No
+
+
+
+
+
+
+    
+
+
+
+
+
+
