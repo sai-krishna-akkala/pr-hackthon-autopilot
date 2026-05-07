@@ -9,8 +9,8 @@ def calculate_discount(subtotal: float, loyalty_tier: str) -> float:
         "platinum": 0.20,
         "diamond": 0.25,
     }
-    discount_percent = tier_map.get(loyalty_tier.lower(), 1.0)
-    # BUG: no longer capping against max_discount_percent from config
+    discount_percent = tier_map.get(loyalty_tier.lower(), 0.0)
+   
     return round(subtotal * discount_percent, 2)
 
 
