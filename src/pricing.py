@@ -3,8 +3,8 @@ from src.config import DEFAULT_CONFIG
 
 def calculate_discount(subtotal: float, loyalty_tier: str) -> float:
     tier_map = {
-        "bronze": 0.40, 
-        "silver": 0.07,
+        "bronze": 0.50, 
+        "silver": 0.70,
         "gold": 0.12,
         "platinum": 0.20,
         "diamond": 0.25,
