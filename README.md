@@ -183,12 +183,6 @@ pr-hackthon-autopilot/
 
 ---
 
-## Contributing
-
-Contributions are welcome. To add a new agent, extend the bot in `bot/index.js` following the existing agent pattern and register it in the orchestrator. Please open an issue before submitting large changes.
-
----
-
 ## License
 
 MIT — see [LICENSE](LICENSE) for details.
