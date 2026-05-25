@@ -3,6 +3,13 @@
 <br/>
 
 ```
+██████╗ ██████╗      ██████╗ ██╗   ██╗ █████╗ ██████╗ ██████╗ 
+██╔══██╗██╔══██╗    ██╔════╝ ██║   ██║██╔══██╗██╔══██╗██╔══██╗
+██████╔╝██████╔╝    ██║  ███╗██║   ██║███████║██████╔╝██║  ██║
+██╔═══╝ ██╔══██╗    ██║   ██║██║   ██║██╔══██║██╔══██╗██║  ██║
+██║     ██║  ██║    ╚██████╔╝╚██████╔╝██║  ██║██║  ██║██████╔╝
+╚═╝     ╚═╝  ╚═╝     ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ 
+```
 
 # PR Autopilot · Multi-Agent PR Review System
 
@@ -133,7 +140,7 @@ Scans for vulnerabilities and unsafe patterns.
 
 ## Sample Output
 
-> *Paste your actual bot output here — the comment posted on the PR*
+![PR Autopilot Review Output](output/image.png)
 
 ---
 
