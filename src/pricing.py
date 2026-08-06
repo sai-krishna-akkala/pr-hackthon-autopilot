@@ -5,8 +5,8 @@ def calculate_discount(subtotal: float, loyalty_tier: str) -> float:
     tier_map = {
         "bronze": 0.03,
         "silver": 0.07,
-        "gold": 0.12,
-        "platinum": 0.20,
+        "gold": 0.15,#changed from 0.12 to 0.15
+        "platinum": 0.30, #changed from 0.20 to 0.30
         "diamond": 0.25,
     }
     discount_percent = tier_map.get(loyalty_tier.lower(), 0.0)
